@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05081c">
+<title>Детектор Лжи: Поймай Обманщика</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23070b24'/><circle cx='32' cy='28' r='13' fill='none' stroke='%2326e6ff' stroke-width='4'/><path d='M41 37l9 9' stroke='%23ff2d95' stroke-width='6' stroke-linecap='round'/></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div class="bg-vignette" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+  <div class="flash" id="flash" aria-hidden="true"></div>
+
+  <header class="hud">
+    <div class="hud-left">
+      <div class="stat score-card"><span>СЧЁТ</span><strong id="score">0</strong></div>
+      <div class="stat best-card"><span>РЕКОРД</span><strong id="best">0</strong></div>
+    </div>
+    <div class="hud-center">
+      <div class="lives" id="lives" aria-label="Жизни"></div>
+      <div class="combo" id="combo"><span>КОМБО</span><strong>x1</strong></div>
+    </div>
+    <div class="hud-right">
+      <button class="icon-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Звук">
+        <svg class="ic-on" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <svg class="ic-off" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="dialogue" id="dialogue">
+      <div class="speech" id="speech">
+        <div class="speech-top">
+          <span class="speaker" id="speaker">—</span>
+          <span class="case" id="caseNo">ДЕЛО #001</span>
+        </div>
+        <p class="speech-text" id="speechText">Нажмите «Начать дело», чтобы допросить первого свидетеля.</p>
+        <div class="result-badge" id="resultBadge"></div>
+      </div>
+      <div class="timer-wrap" id="timerWrap">
+        <div class="timer-label"><span>ВРЕМЯ НА РЕШЕНИЕ</span><span id="timerSec">4.0</span></div>
+        <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+      </div>
+    </div>
+    <div class="float-points" id="floatPoints" aria-hidden="true"></div>
+  </main>
+
+  <footer class="controls">
+    <button class="answer truth" id="btnTruth" type="button">
+      <span class="key">←</span>
+      <span class="answer-icon">✓</span>
+      <span class="answer-label">ПРАВДА</span>
+      <span class="answer-sub">честный гражданин</span>
+    </button>
+    <button class="answer lie" id="btnLie" type="button">
+      <span class="key">→</span>
+      <span class="answer-icon">✕</span>
+      <span class="answer-label">ЛЖЁШЬ!</span>
+      <span class="answer-sub">поймать на слове</span>
+    </button>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="overlay" id="startScreen">
+    <div class="panel start-panel">
+      <div class="brand">
+        <div class="brand-kicker">НЕОНОВЫЙ ДЕТЕКТИВ</div>
+        <h1 class="logo">ДЕТЕКТОР<br><span>ЛЖИ</span></h1>
+        <div class="brand-sub">ПОЙМАЙ ОБМАНЩИКА</div>
+      </div>
+
+      <p class="lead">Смотри на лампочку над головой свидетеля. Ровное зелёное свечение — правда. Красные вспышки — ложь. Чем выше счёт, тем короче вспышки и меньше времени. На телефоне — свайп влево или вправо.</p>
+
+      <div class="mini-rules">
+        <div><i class="dot cyan"></i> 3 жизни</div>
+        <div><i class="dot pink"></i> комбо до x5</div>
+        <div><i class="dot red"></i> не зевай</div>
+      </div>
+
+      <div class="records">
+        <div class="records-head"><span>ЛУЧШИЕ ДЕЛА</span><span>ТОП-5</span></div>
+        <ol id="recordsStart"></ol>
+      </div>
+
+      <button class="primary" id="btnStart" type="button"><span>НАЧАТЬ ДЕЛО</span><small>Enter / Space</small></button>
+      <p class="fine">Yandex Games SDK подключён с безопасной заглушкой. Локально игра работает без рекламы и ошибок.</p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="gameOverScreen">
+    <div class="panel over-panel">
+      <div class="over-kicker" id="overKicker">ДЕЛО ЗАКРЫТО</div>
+      <h2 class="over-title" id="overTitle">ОБМАНЩИК СБЕЖАЛ!</h2>
+
+      <div class="over-score">
+        <span>ВАШ СЧЁТ</span>
+        <strong id="finalScore">0</strong>
+        <div class="new-record hidden" id="newRecord">НОВЫЙ РЕКОРД!</div>
+      </div>
+
+      <div class="over-stats">
+        <div><b id="finalCorrect">0</b><span>поймано</span></div>
+        <div><b id="finalCombo">x1</b><span>макс. комбо</span></div>
+        <div><b id="finalBest">0</b><span>рекорд</span></div>
+      </div>
+
+      <div class="reward-row">
+        <button class="reward" id="btnRevive" type="button">
+          <span class="ad-badge">AD</span>
+          <span class="reward-title">ВТОРАЯ ЖИЗНЬ</span>
+          <span class="reward-sub">+1 сердце и продолжаем</span>
+        </button>
+        <button class="reward" id="btnDouble" type="button">
+          <span class="ad-badge">AD</span>
+          <span class="reward-title">УДВОИТЬ ОЧКИ</span>
+          <span class="reward-sub">x2 к текущему счёту</span>
+        </button>
+      </div>
+
+      <button class="primary ghost" id="btnRestart" type="button"><span>ИГРАТЬ СНОВА</span><small>с рекламой</small></button>
+      <button class="linkish" id="btnMenu" type="button">В главное меню</button>
+    </div>
+  </div>
+
+  <div class="ad-overlay hidden" id="adOverlay" role="dialog" aria-modal="true" aria-label="Реклама">
+    <div class="ad-box">
+      <div class="ad-top"><span>РЕКЛАМА</span><span class="ad-demo">демо-режим</span></div>
+      <div class="ad-art">
+        <div class="ad-ring"></div>
+        <div class="ad-text">ЗДЕСЬ МОГЛА БЫТЬ<br><b>ВАША РЕКЛАМА</b></div>
+      </div>
+      <div class="ad-progress"><div id="adProgress"></div></div>
+      <div class="ad-count" id="adCount">Осталось: 3</div>
+      <button class="primary small hidden" id="adClose" type="button"><span>ЗАКРЫТЬ</span></button>
+    </div>
+  </div>
+
+</div>
+<!-- Yandex Games SDK (/sdk.js) загружается динамически в js/game.js, блок Platform.
+     Локально используется безопасная заглушка, поэтому file:// и localhost работают без ошибок. -->
+<script src="js/game.js" defer></script>
+</body>
+</html>
